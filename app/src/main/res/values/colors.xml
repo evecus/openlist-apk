@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary brand colors (OpenList blue/indigo) -->
+    <color name="primary">#3B5BDB</color>
+    <color name="primary_dark">#2C46C2</color>
+    <color name="primary_light">#EEF2FF</color>
+    <color name="primary_container">#E0E7FF</color>
+    <color name="secondary">#6C757D</color>
+    <color name="secondary_container">#F1F3F5</color>
+
+    <!-- Backgrounds -->
+    <color name="background">#F8F9FA</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#F1F3F5</color>
+    <color name="on_surface">#212529</color>
+
+    <!-- Text -->
+    <color name="text_primary">#212529</color>
+    <color name="text_secondary">#6C757D</color>
+    <color name="text_hint">#ADB5BD</color>
+
+    <!-- Utility -->
+    <color name="divider">#E9ECEF</color>
+    <color name="success">#2F9E44</color>
+    <color name="error">#E03131</color>
+    <color name="warning">#F08C00</color>
+
+    <!-- File type colors -->
+    <color name="color_folder">#E8950A</color>
+    <color name="color_video">#7950F2</color>
+    <color name="color_audio">#2F9E44</color>
+    <color name="color_image">#1971C2</color>
+    <color name="color_pdf">#E03131</color>
+    <color name="color_text">#495057</color>
+    <color name="color_generic">#868E96</color>
+
+    <!-- Nav -->
+    <color name="nav_item_color">#495057</color>
+
+    <!-- Legacy required names -->
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

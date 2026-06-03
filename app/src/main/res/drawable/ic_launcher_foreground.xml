@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Background circle -->
+    <path
+        android:fillColor="#3B5BDB"
+        android:pathData="M0,0 L108,0 L108,108 L0,108 Z" />
+
+    <!-- OpenList logo: stylized list with open bracket/arrow -->
+    <!-- Folder-like shape with play arrow representing open/list -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,34 L50,34 L56,40 L80,40 L80,74 L28,74 Z"
+        android:fillAlpha="0.2"/>
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,38 L50,38 L56,44 L80,44 L80,76 L28,76 Z"/>
+
+    <!-- List lines -->
+    <path
+        android:fillColor="#3B5BDB"
+        android:pathData="M36,54 L72,54 L72,57 L36,57 Z"/>
+    <path
+        android:fillColor="#3B5BDB"
+        android:pathData="M36,62 L65,62 L65,65 L36,65 Z"/>
+    <!-- Small folder tab -->
+    <path
+        android:fillColor="#3B5BDB"
+        android:pathData="M36,46 L55,46 L55,49 L36,49 Z"/>
+</vector>
