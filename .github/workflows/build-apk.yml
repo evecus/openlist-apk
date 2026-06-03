@@ -1,18 +1,13 @@
 name: Build OpenList Android APK (ARM64)
 
 on:
-  push:
-    branches: [ main, master ]
-    tags:
-      - 'v*'
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
-  build:
+  build-debug:
+    name: Build Debug APK (ARM64)
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -22,30 +17,64 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
+        cache: gradle
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-
-    - name: Cache Gradle packages
-      uses: actions/cache@v4
+    # Setup Gradle - installs the Gradle CLI and handles wrapper jar regeneration
+    - name: Setup Gradle 8.6
+      uses: gradle/actions/setup-gradle@v4
       with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
+        gradle-version: '8.6'
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Build ARM64 Release APK
-      run: ./gradlew assembleArm64Release --stacktrace
-      env:
-        ANDROID_HOME: ${{ env.ANDROID_HOME }}
+    # Regenerate the wrapper jar using the system Gradle (not ./gradlew)
+    # This fixes "Could not find or load main class org.gradle.wrapper.GradleWrapperMain"
+    - name: Regenerate Gradle Wrapper JAR
+      run: gradle wrapper --gradle-version=8.6 --distribution-type=bin
 
-    - name: Sign APK
-      if: github.event_name != 'pull_request'
+    - name: Build ARM64 Debug APK
+      run: ./gradlew assembleArm64Debug --stacktrace --no-daemon
+
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: openlist-arm64-debug
+        path: app/build/outputs/apk/arm64/debug/*.apk
+        retention-days: 30
+
+  build-release:
+    name: Build Release APK (ARM64)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Setup Gradle 8.6
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: '8.6'
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Regenerate Gradle Wrapper JAR
+      run: gradle wrapper --gradle-version=8.6 --distribution-type=bin
+
+    - name: Build ARM64 Release APK
+      run: ./gradlew assembleArm64Release --stacktrace --no-daemon
+
+    - name: Sign APK (if secrets configured)
+      if: ${{ secrets.SIGNING_KEY != '' }}
       uses: r0adkll/sign-android-release@v1
       id: sign_app
       with:
@@ -57,86 +86,39 @@ jobs:
       env:
         BUILD_TOOLS_VERSION: "34.0.0"
 
-    - name: Upload APK artifact (unsigned)
-      if: github.event_name == 'pull_request'
+    - name: Upload unsigned release APK
+      if: ${{ secrets.SIGNING_KEY == '' }}
       uses: actions/upload-artifact@v4
       with:
-        name: openlist-arm64-debug
+        name: openlist-arm64-release-unsigned
         path: app/build/outputs/apk/arm64/release/*.apk
-        retention-days: 7
+        retention-days: 30
 
-    - name: Upload signed APK artifact
-      if: github.event_name != 'pull_request'
+    - name: Upload signed release APK
+      if: ${{ secrets.SIGNING_KEY != '' }}
       uses: actions/upload-artifact@v4
       with:
-        name: openlist-arm64-release
+        name: openlist-arm64-release-signed
         path: ${{ steps.sign_app.outputs.signedReleaseFile }}
         retention-days: 30
 
-    - name: Create Release
+    - name: Create GitHub Release
       if: startsWith(github.ref, 'refs/tags/v')
       uses: softprops/action-gh-release@v2
       with:
-        files: ${{ steps.sign_app.outputs.signedReleaseFile }}
+        files: |
+          ${{ steps.sign_app.outputs.signedReleaseFile }}
+          app/build/outputs/apk/arm64/release/*.apk
         name: OpenList Android ${{ github.ref_name }}
+        generate_release_notes: true
         body: |
-          ## OpenList Android Client ${{ github.ref_name }}
-          
-          ### ARM64 Release APK
-          
-          A modern Android client for OpenList server.
-          
-          **Features:**
-          - Connect to your OpenList server
-          - Browse files with modern UI
-          - Video & audio playback
-          - File download support
-          - Tablet landscape layout support
-          
-          **How to use:**
-          1. Install the APK
-          2. Enter your OpenList server address
-          3. Login with your credentials
-          4. Start browsing!
+          ## OpenList Android ${{ github.ref_name }}
+
+          Android client for OpenList file server — ARM64, Android 8.0+
+
+          **Install & use:**
+          1. Download the APK below
+          2. Enable "Install unknown apps" on your device
+          3. Open the app → enter your OpenList server URL → Connect → Login
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build-debug:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-
-    - name: Cache Gradle packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-
-    - name: Build ARM64 Debug APK
-      run: ./gradlew assembleArm64Debug --stacktrace
-
-    - name: Upload Debug APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: openlist-arm64-debug-${{ github.sha }}
-        path: app/build/outputs/apk/arm64/debug/*.apk
-        retention-days: 14
