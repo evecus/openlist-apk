@@ -27,9 +27,30 @@
     <style name="Theme.OpenList.NoActionBar" parent="Theme.OpenList">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
-        <!-- Ensure window draws behind status bar, fitsSystemWindows handles offset -->
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:statusBarColor">@color/primary</item>
+    </style>
+
+    <!--
+        音频播放器专用主题：继承带 ActionBar 的基础主题，
+        但隐藏默认 ActionBar，让代码里的 Toolbar 自己处理导航，
+        同时支持 fitsSystemWindows 正确避开状态栏。
+    -->
+    <style name="Theme.OpenList.AudioPlayer" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryVariant">@color/primary_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorError">@color/error</item>
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:statusBarColor">@color/primary</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.App.MaterialAlertDialog</item>
     </style>
 
     <style name="ToolbarTitle" parent="TextAppearance.MaterialComponents.Headline6">
