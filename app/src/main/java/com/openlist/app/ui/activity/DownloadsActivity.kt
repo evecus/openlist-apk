@@ -42,7 +42,7 @@ class DownloadsActivity : AppCompatActivity() {
             setBackgroundColor(getColor(R.color.primary))
             setTitleTextColor(getColor(R.color.white))
             setNavigationIcon(R.drawable.ic_arrow_back)
-            navigationIconTint = android.content.res.ColorStateList.valueOf(getColor(R.color.white))
+            setNavigationIconTint(android.content.res.ColorStateList.valueOf(getColor(R.color.white)))
             setNavigationOnClickListener { finish() }
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
@@ -164,12 +164,8 @@ class DownloadsActivity : AppCompatActivity() {
             // 使用系统内置的 two_line_list_item 布局
             val view = android.view.LayoutInflater.from(parent.context)
                 .inflate(android.R.layout.simple_list_item_2, parent, false)
-            view.setPadding(
-                resources.getDimensionPixelSize(R.dimen.abc_action_bar_default_padding_start_material),
-                16,
-                resources.getDimensionPixelSize(R.dimen.abc_action_bar_default_padding_end_material),
-                16
-            )
+            val dp16 = (16 * parent.context.resources.displayMetrics.density).toInt()
+            view.setPadding(dp16, dp16, dp16, dp16)
             return VH(view)
         }
 
