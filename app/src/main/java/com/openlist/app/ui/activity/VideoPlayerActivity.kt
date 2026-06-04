@@ -18,18 +18,11 @@ import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.interfaces.IVLCVout
 
-class VideoPlayerActivity : AppCompatActivity(),
-    IVLCVout.Callback,
-    IVLCVout.OnNewVideoLayoutListener {
+class VideoPlayerActivity : AppCompatActivity(), IVLCVout.Callback {
 
     private lateinit var binding: ActivityVideoPlayerBinding
     private lateinit var libVLC: LibVLC
     private lateinit var mediaPlayer: MediaPlayer
-
-    private var videoVisibleWidth = 0
-    private var videoVisibleHeight = 0
-    private var videoSarNum = 1
-    private var videoSarDen = 1
 
     private val handler = Handler(Looper.getMainLooper())
     private val progressUpdater = object : Runnable {
@@ -102,9 +95,13 @@ class VideoPlayerActivity : AppCompatActivity(),
 
         val vout = mediaPlayer.vlcVout
         vout.setVideoView(binding.surfaceView)
-        vout.addCallback(this)                      // IVLCVout.Callback
-        vout.addOnNewVideoLayoutListener(this)      // IVLCVout.OnNewVideoLayoutListener
+        vout.addCallback(this)
         vout.attachViews()
+
+        // 告知 libVLC 当前 Surface 尺寸，让它正确铺满
+        binding.surfaceView.post {
+            vout.setWindowSize(binding.surfaceView.width, binding.surfaceView.height)
+        }
 
         val media = Media(libVLC, android.net.Uri.parse(url)).apply {
             addOption(":http-reconnect")
@@ -134,6 +131,10 @@ class VideoPlayerActivity : AppCompatActivity(),
                     binding.progressBar.visibility =
                         if (event.buffering < 100f) View.VISIBLE else View.GONE
                 }
+                MediaPlayer.Event.Vout -> runOnUiThread {
+                    // vout 就绪或尺寸变化时，重新同步 Surface 尺寸
+                    vout.setWindowSize(binding.surfaceView.width, binding.surfaceView.height)
+                }
                 MediaPlayer.Event.EncounteredError -> runOnUiThread {
                     Toast.makeText(this, "播放失败：格式不支持或网络错误", Toast.LENGTH_LONG).show()
                 }
@@ -144,51 +145,11 @@ class VideoPlayerActivity : AppCompatActivity(),
         binding.progressBar.visibility = View.VISIBLE
     }
 
-    // IVLCVout.Callback — 必须实现，但不需要处理
-    override fun onSurfacesCreated(vout: IVLCVout) {}
+    // IVLCVout.Callback
+    override fun onSurfacesCreated(vout: IVLCVout) {
+        vout.setWindowSize(binding.surfaceView.width, binding.surfaceView.height)
+    }
     override fun onSurfacesDestroyed(vout: IVLCVout) {}
-
-    // IVLCVout.OnNewVideoLayoutListener — 视频尺寸就绪时动态调整 SurfaceView
-    override fun onNewVideoLayout(
-        vout: IVLCVout,
-        width: Int, height: Int,
-        visibleWidth: Int, visibleHeight: Int,
-        sarNum: Int, sarDen: Int
-    ) {
-        if (width == 0 || height == 0) return
-        videoVisibleWidth = visibleWidth
-        videoVisibleHeight = visibleHeight
-        videoSarNum = if (sarNum == 0) 1 else sarNum
-        videoSarDen = if (sarDen == 0) 1 else sarDen
-        handler.post { updateSurfaceSize() }
-    }
-
-    private fun updateSurfaceSize() {
-        val container = binding.surfaceView.parent as? View ?: return
-        val containerW = container.width
-        val containerH = container.height
-        if (containerW == 0 || containerH == 0 || videoVisibleWidth == 0 || videoVisibleHeight == 0) return
-
-        val videoW = videoVisibleWidth.toFloat() * videoSarNum / videoSarDen
-        val videoH = videoVisibleHeight.toFloat()
-        val videoAspect = videoW / videoH
-        val containerAspect = containerW.toFloat() / containerH
-
-        val surfaceW: Int
-        val surfaceH: Int
-        if (videoAspect > containerAspect) {
-            surfaceW = containerW
-            surfaceH = (containerW / videoAspect).toInt()
-        } else {
-            surfaceH = containerH
-            surfaceW = (containerH * videoAspect).toInt()
-        }
-
-        val lp = binding.surfaceView.layoutParams
-        lp.width = surfaceW
-        lp.height = surfaceH
-        binding.surfaceView.layoutParams = lp
-    }
 
     // --- 控制栏 ---
 
@@ -273,10 +234,8 @@ class VideoPlayerActivity : AppCompatActivity(),
         super.onDestroy()
         handler.removeCallbacks(progressUpdater)
         handler.removeCallbacks(hideControlsRunnable)
-        val vout = mediaPlayer.vlcVout
-        vout.removeCallback(this)
-        vout.removeOnNewVideoLayoutListener(this)
-        vout.detachViews()
+        mediaPlayer.vlcVout.removeCallback(this)
+        mediaPlayer.vlcVout.detachViews()
         mediaPlayer.release()
         libVLC.release()
     }
