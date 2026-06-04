@@ -1,122 +1,105 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Tablet landscape: side nav always visible, content fills rest -->
-<LinearLayout
+<!-- Tablet landscape: DrawerLayout root matches phone layout; drawer is locked open in code -->
+<androidx.drawerlayout.widget.DrawerLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal"
     android:background="@color/background">
 
-    <!-- Persistent side nav (tablet) -->
+    <!-- Main content -->
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginStart="260dp">
+
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/appBarLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:elevation="4dp"
+            app:liftOnScroll="true">
+
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                app:titleTextAppearance="@style/ToolbarTitle"
+                app:subtitleTextAppearance="@style/ToolbarSubtitle" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvBreadcrumbs"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:background="@color/surface_variant"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:clipToPadding="false"
+                android:scrollbars="none" />
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipeRefresh"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvFiles"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingBottom="16dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:clipToPadding="false"
+                android:scrollbars="vertical" />
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/tvEmptyState"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@drawable/ic_folder_empty"
+                android:alpha="0.3" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/empty_folder"
+                android:textColor="@color/text_secondary"
+                android:textSize="16sp"
+                android:layout_marginTop="12dp" />
+        </LinearLayout>
+
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+    <!-- Navigation drawer — locked open on tablet landscape -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navView"
         android:layout_width="260dp"
         android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:elevation="2dp"
+        android:background="@color/surface"
         app:menu="@menu/nav_menu"
         app:headerLayout="@layout/nav_header"
         app:itemIconTint="@color/nav_item_color"
-        app:itemTextColor="@color/nav_item_color"
-        android:background="@color/surface"
-        android:elevation="2dp" />
+        app:itemTextColor="@color/nav_item_color" />
 
-    <!-- Divider -->
-    <View
-        android:layout_width="1dp"
-        android:layout_height="match_parent"
-        android:background="@color/divider" />
-
-    <!-- Main content (no drawer needed on tablet) -->
-    <androidx.coordinatorlayout.widget.CoordinatorLayout
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1">
-
-        <!-- Fake DrawerLayout wrapper to keep code compatible -->
-        <androidx.drawerlayout.widget.DrawerLayout
-            android:id="@+id/drawerLayout"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <androidx.coordinatorlayout.widget.CoordinatorLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-
-                <com.google.android.material.appbar.AppBarLayout
-                    android:id="@+id/appBarLayout"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:elevation="2dp">
-
-                    <com.google.android.material.appbar.MaterialToolbar
-                        android:id="@+id/toolbar"
-                        android:layout_width="match_parent"
-                        android:layout_height="?attr/actionBarSize"
-                        app:titleTextAppearance="@style/ToolbarTitle"
-                        app:subtitleTextAppearance="@style/ToolbarSubtitle" />
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rvBreadcrumbs"
-                        android:layout_width="match_parent"
-                        android:layout_height="40dp"
-                        android:background="@color/surface_variant"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="12dp"
-                        android:clipToPadding="false"
-                        android:scrollbars="none" />
-                </com.google.android.material.appbar.AppBarLayout>
-
-                <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-                    android:id="@+id/swipeRefresh"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    app:layout_behavior="@string/appbar_scrolling_view_behavior">
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rvFiles"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:paddingBottom="16dp"
-                        android:paddingStart="4dp"
-                        android:paddingEnd="4dp"
-                        android:clipToPadding="false"
-                        android:scrollbars="vertical" />
-                </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-
-                <ProgressBar
-                    android:id="@+id/progressBar"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_gravity="center"
-                    android:visibility="gone" />
-
-                <LinearLayout
-                    android:id="@+id/tvEmptyState"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:visibility="gone">
-
-                    <ImageView
-                        android:layout_width="80dp"
-                        android:layout_height="80dp"
-                        android:src="@drawable/ic_folder_empty"
-                        android:alpha="0.3" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/empty_folder"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="16sp"
-                        android:layout_marginTop="12dp" />
-                </LinearLayout>
-
-            </androidx.coordinatorlayout.widget.CoordinatorLayout>
-        </androidx.drawerlayout.widget.DrawerLayout>
-    </androidx.coordinatorlayout.widget.CoordinatorLayout>
-
-</LinearLayout>
+</androidx.drawerlayout.widget.DrawerLayout>
