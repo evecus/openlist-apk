@@ -4,42 +4,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-debug:
-    name: Build Debug APK (ARM64)
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: gradle
-
-    - name: Setup Gradle 8.6
-      uses: gradle/actions/setup-gradle@v4
-      with:
-        gradle-version: '8.6'
-
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-
-    - name: Regenerate Gradle Wrapper JAR
-      run: gradle wrapper --gradle-version=8.6 --distribution-type=bin
-
-    - name: Build ARM64 Debug APK
-      run: ./gradlew assembleArm64Debug --stacktrace --no-daemon
-
-    - name: Upload Debug APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: openlist-arm64-debug
-        path: app/build/outputs/apk/arm64/debug/*.apk
-        retention-days: 30
-
   build-release:
     name: Build Release APK (ARM64)
     runs-on: ubuntu-latest
