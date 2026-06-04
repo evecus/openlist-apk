@@ -215,6 +215,52 @@ class FileListViewModel(application: Application) : AndroidViewModel(application
         return repo.buildAuthDownloadUrl(path, sign)
     }
 
+    /**
+     * 先调 fs/get 获取 AList 返回的 raw_url（真实直链），
+     * 再把这个 URL 回调给调用方。
+     *
+     * AList 的直链流程：
+     *   /api/fs/get -> raw_url（第三方存储直链 / 本地直链）
+     * 如果 raw_url 为空（极少数情况），fallback 到 /d/ 下载链接。
+     *
+     * 回调在主线程执行：onReady(url) 成功，onError(msg) 失败。
+     */
+    fun resolvePlayUrl(
+        item: FileItem,
+        onReady: (url: String) -> Unit,
+        onError: (msg: String) -> Unit
+    ) {
+        val repo = repository ?: run { onError("未连接服务器"); return }
+        val path = "${_currentPath.value?.trimEnd('/')}/${item.name}"
+
+        viewModelScope.launch {
+            when (val result = repo.getFile(path)) {
+                is Result.Success -> {
+                    val data = result.data
+                    // 优先用 raw_url；为空时 fallback 到 /d/ 带 token 的链接
+                    val url = data.rawUrl.ifBlank {
+                        repo.buildAuthDownloadUrl(path, data.sign.ifBlank { item.sign })
+                    }
+                    if (url.isBlank()) {
+                        onError("无法获取播放地址")
+                    } else {
+                        onReady(url)
+                    }
+                }
+                is Result.Error -> {
+                    // fs/get 失败时 fallback，避免完全无法播放
+                    val fallback = repo.buildAuthDownloadUrl(path, item.sign)
+                    if (fallback.isNotBlank()) {
+                        onReady(fallback)
+                    } else {
+                        onError("获取文件信息失败：${result.message}")
+                    }
+                }
+                else -> onError("获取文件信息失败")
+            }
+        }
+    }
+
     fun getServerUrl(): String = serverUrl
 
     fun getToken(): String {
