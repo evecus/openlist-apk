@@ -6,12 +6,19 @@
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <!-- libVLC 渲染 Surface -->
-    <SurfaceView
-        android:id="@+id/surfaceView"
+    <!-- 容器居中，libVLC 动态设置 SurfaceView 宽高 -->
+    <FrameLayout
+        android:id="@+id/surfaceContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="center" />
+        android:layout_gravity="center">
+
+        <SurfaceView
+            android:id="@+id/surfaceView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center" />
+    </FrameLayout>
 
     <!-- 缓冲转圈 -->
     <ProgressBar
@@ -76,7 +83,6 @@
         android:background="@drawable/gradient_bottom"
         android:visibility="gone">
 
-        <!-- 时间 + SeekBar -->
         <SeekBar
             android:id="@+id/seekBar"
             android:layout_width="match_parent"
@@ -113,7 +119,6 @@
                 android:textSize="12sp" />
         </LinearLayout>
 
-        <!-- 播放控制按钮 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
