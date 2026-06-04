@@ -29,9 +29,11 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val token = prefs.activeServerToken.first()
             val url = prefs.activeServerUrl.first()
-            if (token.isNotEmpty() && url.isNotEmpty()) {
+            if (token.isNotEmpty() && url.isNotBlank()) {
                 _loginState.value = LoginState.AlreadyLoggedIn(url, token)
             } else {
+                // Clear any partial/corrupt state before showing setup
+                prefs.clearActiveServer()
                 _loginState.value = LoginState.NeedsSetup
             }
         }
