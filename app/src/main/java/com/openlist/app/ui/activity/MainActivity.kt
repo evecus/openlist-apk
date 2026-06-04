@@ -58,8 +58,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupDrawer() {
         if (isTablet()) {
-            // On tablet: lock drawer open permanently as a fixed side nav panel.
-            // NonInterceptingDrawerLayout handles touch passthrough automatically.
             binding.drawerLayout?.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_OPEN)
             binding.drawerLayout?.setScrimColor(android.graphics.Color.TRANSPARENT)
         }
@@ -75,8 +73,8 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_downloads -> {
-                    // TODO: Show downloads screen
-                    Toast.makeText(this, "Downloads coming soon", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(this, DownloadsActivity::class.java))
+                    if (!isTablet()) binding.drawerLayout?.closeDrawer(GravityCompat.START)
                     true
                 }
                 else -> false
@@ -85,7 +83,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerViews() {
-        // File list
         fileAdapter = FileListAdapter(
             onItemClick = { item -> onFileItemClick(item) },
             onItemLongClick = { item -> showFileOptions(item) },
@@ -102,7 +99,6 @@ class MainActivity : AppCompatActivity() {
                     val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return
                     val totalItemCount = lm.itemCount
                     val lastVisible = lm.findLastVisibleItemPosition()
-                    // Trigger load more when within 5 items of the end
                     if (lastVisible >= totalItemCount - 5) {
                         viewModel.loadMore()
                     }
@@ -110,7 +106,6 @@ class MainActivity : AppCompatActivity() {
             })
         }
 
-        // Breadcrumb
         breadcrumbAdapter = BreadcrumbAdapter { path ->
             viewModel.loadFiles(path)
         }
@@ -158,9 +153,7 @@ class MainActivity : AppCompatActivity() {
             binding.rvBreadcrumbs.scrollToPosition(crumbs.size - 1)
         }
 
-        viewModel.currentPath.observe(this) { _ ->
-            // Path is shown in the breadcrumb bar below the toolbar; no subtitle needed
-        }
+        viewModel.currentPath.observe(this) { _ -> }
 
         viewModel.serverName.observe(this) { name ->
             supportActionBar?.title = name.ifEmpty { "OpenList" }
@@ -184,8 +177,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onFileItemClick(item: FileItem) {
-        // If search result, navigate by building path
-        val searchResults = viewModel.searchResults.value
         if (item.isDir) {
             val currentPath = viewModel.currentPath.value ?: "/"
             val newPath = if (currentPath == "/") "/${item.name}" else "$currentPath/${item.name}"
