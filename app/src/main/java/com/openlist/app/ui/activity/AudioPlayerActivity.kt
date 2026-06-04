@@ -51,6 +51,9 @@ class AudioPlayerActivity : AppCompatActivity() {
 
     private fun initPlayer(url: String, title: String) {
         player = ExoPlayer.Builder(this).build().also { exo ->
+            // PlayerView 必须绑定，ExoPlayer 内部事件循环依赖它；
+            // 布局中该 View 是 visibility="gone" + surface_type="none"，不会显示任何内容
+            binding.playerView.player = exo
 
             val mediaItem = MediaItem.Builder()
                 .setUri(url)
