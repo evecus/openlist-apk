@@ -48,11 +48,16 @@ class AudioPlayerActivity : AppCompatActivity() {
     }
 
     private fun initPlayer(url: String) {
-        libVLC = LibVLC(this, arrayListOf("--no-video", "--network-caching=3000"))
+        libVLC = LibVLC(this, arrayListOf("--network-caching=3000", "--no-osd"))
         mediaPlayer = MediaPlayer(libVLC)
 
-        val media = Media(libVLC, android.net.Uri.parse(url))
+        val media = Media(libVLC, android.net.Uri.parse(url)).apply {
+            addOption(":no-video")       // 仅禁视频轨，不影响音频解析
+            addOption(":http-reconnect") // 网络断线自动重连
+        }
         mediaPlayer.media = media
+        // play() 之后再 release，确保网络流完成初始化
+        mediaPlayer.play()
         media.release()
 
         mediaPlayer.setEventListener { event ->
@@ -73,6 +78,12 @@ class AudioPlayerActivity : AppCompatActivity() {
                 MediaPlayer.Event.Buffering -> runOnUiThread {
                     binding.progressBar.visibility =
                         if (event.buffering < 100f) View.VISIBLE else View.GONE
+                }
+                MediaPlayer.Event.EncounteredError -> runOnUiThread {
+                    binding.progressBar.visibility = View.GONE
+                    android.widget.Toast.makeText(
+                        this, "播放失败，请检查网络或格式", android.widget.Toast.LENGTH_SHORT
+                    ).show()
                 }
                 MediaPlayer.Event.EndReached -> runOnUiThread {
                     handler.removeCallbacks(progressUpdater)
@@ -106,7 +117,6 @@ class AudioPlayerActivity : AppCompatActivity() {
         })
 
         binding.progressBar.visibility = View.VISIBLE
-        mediaPlayer.play()
     }
 
     private fun updateSeekBar() {
