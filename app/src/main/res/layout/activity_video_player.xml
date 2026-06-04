@@ -22,14 +22,16 @@
         android:indeterminateTint="#FFFFFF"
         android:visibility="gone" />
 
-    <!-- Custom top bar overlay -->
+    <!-- Custom top bar overlay — visibility controlled by ExoPlayer controller listener -->
     <LinearLayout
+        android:id="@+id/topBar"
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:paddingHorizontal="8dp"
-        android:background="@drawable/gradient_top">
+        android:background="@drawable/gradient_top"
+        android:visibility="gone">
 
         <ImageButton
             android:id="@+id/btnBack"
