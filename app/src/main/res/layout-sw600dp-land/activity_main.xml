@@ -4,7 +4,7 @@
     DrawerLayout is still used so MainActivity code references work, but the drawer
     is locked open and the main content margin matches the nav width.
 -->
-<androidx.drawerlayout.widget.DrawerLayout
+<com.openlist.app.ui.widget.NonInterceptingDrawerLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawerLayout"
@@ -110,4 +110,4 @@
         app:itemIconTint="@color/nav_item_color"
         app:itemTextColor="@color/nav_item_color" />
 
-</androidx.drawerlayout.widget.DrawerLayout>
+</com.openlist.app.ui.widget.NonInterceptingDrawerLayout>
