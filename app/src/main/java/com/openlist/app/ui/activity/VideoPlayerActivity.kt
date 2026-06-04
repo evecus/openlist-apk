@@ -6,10 +6,13 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import com.openlist.app.databinding.ActivityVideoPlayerBinding
@@ -54,7 +57,6 @@ class VideoPlayerActivity : AppCompatActivity() {
             }
         }
 
-        // Sync top bar visibility with ExoPlayer's controller (same show/hide timing)
         binding.topBar.visibility = View.GONE
         binding.playerView.setControllerVisibilityListener(
             androidx.media3.ui.PlayerView.ControllerVisibilityListener { visibility ->
@@ -82,37 +84,71 @@ class VideoPlayerActivity : AppCompatActivity() {
     }
 
     private fun initializePlayer(url: String) {
-        if (player != null) return  // already initialized
-        player = ExoPlayer.Builder(this).build().also { exoPlayer ->
-            binding.playerView.player = exoPlayer
-            binding.playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-            exoPlayer.setMediaItem(MediaItem.fromUri(url))
-            exoPlayer.seekTo(playbackPosition)
-            exoPlayer.playWhenReady = playWhenReady
-            exoPlayer.prepare()
-            exoPlayer.addListener(object : Player.Listener {
-                override fun onPlaybackStateChanged(state: Int) {
-                    binding.progressBar.visibility =
-                        if (state == Player.STATE_BUFFERING) View.VISIBLE else View.GONE
-                }
-            })
-        }
+        if (player != null) return
+
+        // 自定义缓冲区：高码率视频（4K/高比特率）需要更大的缓冲才能稳定播放
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                15_000,   // minBufferMs：至少缓冲15秒再开始播放
+                120_000,  // maxBufferMs：最多缓冲120秒（应对高码率场景）
+                2_500,    // bufferForPlaybackMs：首次播放只需缓冲2.5秒
+                5_000     // bufferForPlaybackAfterRebufferMs：卡顿后恢复需缓冲5秒
+            )
+            .setTargetBufferBytes(
+                // 64MB 缓冲上限，支持高码率视频；默认值仅约 15MB
+                64 * 1024 * 1024
+            )
+            .setPrioritizeTimeOverSizeThresholds(true) // 优先按时长缓冲而非大小
+            .build()
+
+        player = ExoPlayer.Builder(this)
+            .setLoadControl(loadControl)
+            .build()
+            .also { exoPlayer ->
+                binding.playerView.player = exoPlayer
+                binding.playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                exoPlayer.setMediaItem(MediaItem.fromUri(url))
+                exoPlayer.seekTo(playbackPosition)
+                exoPlayer.playWhenReady = playWhenReady
+                exoPlayer.prepare()
+
+                exoPlayer.addListener(object : Player.Listener {
+                    override fun onPlaybackStateChanged(state: Int) {
+                        binding.progressBar.visibility =
+                            if (state == Player.STATE_BUFFERING) View.VISIBLE else View.GONE
+                    }
+
+                    override fun onPlayerError(error: PlaybackException) {
+                        // 将错误原因显示给用户，方便排查（网络超时、格式不支持等）
+                        val msg = when (error.errorCode) {
+                            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+                            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ->
+                                "网络连接失败，请检查网络"
+                            PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
+                            PlaybackException.ERROR_CODE_DECODING_FAILED ->
+                                "视频格式不支持或解码失败"
+                            PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ->
+                                "服务器返回错误，无法播放"
+                            else -> "播放失败：${error.message}"
+                        }
+                        Toast.makeText(this@VideoPlayerActivity, msg, Toast.LENGTH_LONG).show()
+                    }
+                })
+            }
     }
 
     override fun onResume() {
         super.onResume()
         hideSystemUI()
-        // Resume playback if player exists and was playing
         player?.playWhenReady = playWhenReady
     }
 
     override fun onPause() {
         super.onPause()
-        // Save position and pause — do NOT release here
         player?.let {
             playWhenReady = it.playWhenReady
             playbackPosition = it.currentPosition
-            it.playWhenReady = false  // pause audio immediately
+            it.playWhenReady = false
         }
     }
 
