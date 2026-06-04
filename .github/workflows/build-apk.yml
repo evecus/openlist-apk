@@ -20,16 +20,16 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    - name: Setup Gradle 8.6
+    - name: Setup Gradle 8.9
       uses: gradle/actions/setup-gradle@v4
       with:
-        gradle-version: '8.6'
+        gradle-version: '8.9'
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
     - name: Regenerate Gradle Wrapper JAR
-      run: gradle wrapper --gradle-version=8.6 --distribution-type=bin
+      run: gradle wrapper --gradle-version=8.9 --distribution-type=bin
 
     - name: Build ARM64 Release APK
       run: ./gradlew assembleArm64Release --stacktrace --no-daemon
