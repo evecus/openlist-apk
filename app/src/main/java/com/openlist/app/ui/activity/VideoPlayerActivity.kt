@@ -53,6 +53,14 @@ class VideoPlayerActivity : AppCompatActivity() {
                 else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
             }
         }
+
+        // Sync top bar visibility with ExoPlayer's controller (same show/hide timing)
+        binding.topBar.visibility = View.GONE
+        binding.playerView.setControllerVisibilityListener(
+            androidx.media3.ui.PlayerView.ControllerVisibilityListener { visibility ->
+                binding.topBar.visibility = visibility
+            }
+        )
     }
 
     @Suppress("DEPRECATION")
