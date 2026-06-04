@@ -31,13 +31,17 @@ class FileListViewModel(application: Application) : AndroidViewModel(application
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
+    // Signals MainActivity to go back to SetupActivity (e.g. missing config, auth error)
+    private val _navigateToSetup = MutableLiveData<Boolean>(false)
+    val navigateToSetup: LiveData<Boolean> = _navigateToSetup
+
     private val _currentPath = MutableLiveData<String>("/")
     val currentPath: LiveData<String> = _currentPath
 
     private val _breadcrumbs = MutableLiveData<List<BreadcrumbItem>>()
     val breadcrumbs: LiveData<List<BreadcrumbItem>> = _breadcrumbs
 
-    private val _searchResults = MutableLiveData<List<SearchItem>?>()
+    private val _searchResults = MutableLiveData<List<SearchItem>?>(null)
     val searchResults: LiveData<List<SearchItem>?> = _searchResults
 
     private val _isSearching = MutableLiveData<Boolean>(false)
@@ -56,10 +60,19 @@ class FileListViewModel(application: Application) : AndroidViewModel(application
 
     init {
         viewModelScope.launch {
-            serverUrl = prefs.activeServerUrl.first()
+            val url = prefs.activeServerUrl.first()
             val token = prefs.activeServerToken.first()
             val name = prefs.activeServerName.first()
-            _serverName.value = name
+
+            // Guard: if URL is empty the session is corrupt — send user back to setup
+            if (url.isBlank()) {
+                prefs.clearActiveServer()
+                _navigateToSetup.value = true
+                return@launch
+            }
+
+            serverUrl = url
+            _serverName.value = name.ifEmpty { "OpenList" }
             repository = OpenListRepository(serverUrl, token)
             sortBy = prefs.sortBy.first()
             sortDesc = prefs.sortDesc.first()
@@ -105,7 +118,13 @@ class FileListViewModel(application: Application) : AndroidViewModel(application
                 }
                 is Result.Error -> {
                     if (!append) _files.value = emptyList()
-                    _error.value = result.message
+                    // 401 means token expired/invalid — kick back to setup
+                    if (result.code == 401) {
+                        prefs.clearActiveServer()
+                        _navigateToSetup.value = true
+                    } else {
+                        _error.value = result.message
+                    }
                 }
                 else -> {}
             }
