@@ -65,6 +65,19 @@
             android:layout_marginTop="16dp"
             android:visibility="gone" />
 
+        <!--
+            PlayerView 必须存在且绑定 player，ExoPlayer 才能正常工作。
+            visibility="gone" 使它不占空间、不渲染画面，彻底不可见。
+            surface_type="none" 确保不分配视频 Surface，纯音频无黑块。
+        -->
+        <androidx.media3.ui.PlayerView
+            android:id="@+id/playerView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone"
+            app:use_controller="false"
+            app:surface_type="none" />
+
         <!-- SeekBar 进度条 -->
         <SeekBar
             android:id="@+id/seekBar"
