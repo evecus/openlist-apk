@@ -52,6 +52,7 @@
         <activity
             android:name=".ui.activity.MainActivity"
             android:exported="false"
+            android:theme="@style/Theme.OpenList.NoActionBar"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
             android:windowSoftInputMode="adjustResize" />
 
