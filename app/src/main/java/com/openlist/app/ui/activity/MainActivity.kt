@@ -57,15 +57,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupDrawer() {
+        val drawer = binding.drawerLayout as? DrawerLayout
         if (isTablet()) {
             // On tablet, keep drawer always visible in landscape
-            binding.drawerLayout?.setScrimColor(android.graphics.Color.TRANSPARENT)
+            drawer?.setScrimColor(android.graphics.Color.TRANSPARENT)
         }
         binding.navView?.setNavigationItemSelectedListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.nav_home -> {
                     viewModel.loadFiles("/")
-                    binding.drawerLayout?.closeDrawer(GravityCompat.START)
+                    drawer?.closeDrawer(GravityCompat.START)
                     true
                 }
                 R.id.nav_servers -> {
@@ -276,13 +277,14 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             android.R.id.home -> {
+                val drawer = binding.drawerLayout as? DrawerLayout
                 if (isTablet()) {
-                    binding.drawerLayout?.let {
+                    drawer?.let {
                         if (it.isDrawerOpen(GravityCompat.START)) it.closeDrawer(GravityCompat.START)
                         else it.openDrawer(GravityCompat.START)
                     }
                 } else {
-                    binding.drawerLayout?.openDrawer(GravityCompat.START)
+                    drawer?.openDrawer(GravityCompat.START)
                 }
                 true
             }
@@ -333,8 +335,8 @@ class MainActivity : AppCompatActivity() {
     private fun setupBackPress() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (binding.drawerLayout?.isDrawerOpen(GravityCompat.START) == true) {
-                    binding.drawerLayout?.closeDrawer(GravityCompat.START)
+                if ((binding.drawerLayout as? DrawerLayout)?.isDrawerOpen(GravityCompat.START) == true) {
+                    (binding.drawerLayout as? DrawerLayout)?.closeDrawer(GravityCompat.START)
                     return
                 }
                 if (viewModel.searchResults.value != null) {
