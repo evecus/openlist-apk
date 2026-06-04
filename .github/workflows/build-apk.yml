@@ -1,93 +1,84 @@
-name: Build OpenList Android APK (ARM64)
+name: Build & Release OpenList APK
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: true
+        type: string
 
 jobs:
-  build-release:
-    name: Build Release APK (ARM64)
+  build-and-release:
+    name: Build Signed APK & Publish Release
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: gradle
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
 
-    - name: Setup Gradle 8.9
-      uses: gradle/actions/setup-gradle@v4
-      with:
-        gradle-version: '8.9'
+      - name: Setup Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
-    - name: Regenerate Gradle Wrapper JAR
-      run: gradle wrapper --gradle-version=8.9 --distribution-type=bin
+      - name: Regenerate Gradle Wrapper JAR
+        run: gradle wrapper --gradle-version=8.9 --distribution-type=bin
 
-    - name: Build ARM64 Release APK
-      run: ./gradlew assembleArm64Release --stacktrace --no-daemon
+      # Decode the base64 keystore from Secrets and write it to disk
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > ${{ runner.temp }}/release.jks
 
-    # Always upload the unsigned APK as an artifact (available even without signing secrets)
-    - name: Upload unsigned release APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: openlist-arm64-release-unsigned
-        path: app/build/outputs/apk/arm64/release/*.apk
-        retention-days: 30
+      # Build a signed release APK by passing keystore info as env vars (matches build.gradle)
+      - name: Build signed ARM64 Release APK
+        env:
+          KEYSTORE_FILE: ${{ runner.temp }}/release.jks
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleArm64Release --stacktrace --no-daemon
 
-    # Sign only when the secret is configured — use env var to check, not secrets context
-    - name: Check signing secrets
-      id: check_secrets
-      run: |
-        if [ -n "${{ secrets.SIGNING_KEY }}" ]; then
-          echo "has_secrets=true" >> $GITHUB_OUTPUT
-        else
-          echo "has_secrets=false" >> $GITHUB_OUTPUT
-        fi
+      # Rename APK to include the tag for clarity in the release assets
+      - name: Rename APK
+        run: |
+          APK=$(find app/build/outputs/apk/arm64/release -name "*.apk" | head -1)
+          mv "$APK" "app/build/outputs/apk/arm64/release/openlist-${{ github.event.inputs.tag }}-arm64.apk"
 
-    - name: Sign APK
-      if: steps.check_secrets.outputs.has_secrets == 'true'
-      uses: r0adkll/sign-android-release@v1
-      id: sign_app
-      with:
-        releaseDirectory: app/build/outputs/apk/arm64/release
-        signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-        alias: ${{ secrets.KEY_ALIAS }}
-        keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
-        keyPassword: ${{ secrets.KEY_PASSWORD }}
-      env:
-        BUILD_TOOLS_VERSION: "34.0.0"
+      # Upload as artifact (always, even if release step fails)
+      - name: Upload signed APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openlist-${{ github.event.inputs.tag }}-arm64
+          path: app/build/outputs/apk/arm64/release/openlist-${{ github.event.inputs.tag }}-arm64.apk
+          retention-days: 30
 
-    - name: Upload signed release APK
-      if: steps.check_secrets.outputs.has_secrets == 'true'
-      uses: actions/upload-artifact@v4
-      with:
-        name: openlist-arm64-release-signed
-        path: ${{ steps.sign_app.outputs.signedReleaseFile }}
-        retention-days: 30
+      # Create git tag and GitHub Release, attach the signed APK
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          name: OpenList Android ${{ github.event.inputs.tag }}
+          generate_release_notes: true
+          files: app/build/outputs/apk/arm64/release/openlist-${{ github.event.inputs.tag }}-arm64.apk
+          body: |
+            ## OpenList Android ${{ github.event.inputs.tag }}
 
-    - name: Create GitHub Release
-      if: startsWith(github.ref, 'refs/tags/v')
-      uses: softprops/action-gh-release@v2
-      with:
-        files: app/build/outputs/apk/arm64/release/*.apk
-        name: OpenList Android ${{ github.ref_name }}
-        generate_release_notes: true
-        body: |
-          ## OpenList Android ${{ github.ref_name }}
+            Android client for OpenList file server — ARM64, Android 8.0+
 
-          Android client for OpenList file server — ARM64, Android 8.0+
-
-          **Install & use:**
-          1. Download the APK below
-          2. Enable "Install unknown apps" on your device
-          3. Open the app → enter your OpenList server URL → Connect → Login
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            **Install:**
+            1. Download the APK below
+            2. Enable "Install unknown apps" on your device
+            3. Open the app → enter your OpenList server URL → Connect → Login
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
