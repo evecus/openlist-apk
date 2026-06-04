@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Tablet landscape: DrawerLayout root matches phone layout; drawer is locked open in code -->
 <androidx.drawerlayout.widget.DrawerLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     android:background="@color/background">
 
     <!-- Main content -->
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginStart="260dp">
+        android:layout_height="match_parent">
 
         <com.google.android.material.appbar.AppBarLayout
             android:id="@+id/appBarLayout"
@@ -28,17 +27,19 @@
                 app:titleTextAppearance="@style/ToolbarTitle"
                 app:subtitleTextAppearance="@style/ToolbarSubtitle" />
 
+            <!-- Breadcrumb bar -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvBreadcrumbs"
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
-                android:background="@color/surface_variant"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:background="@color/surface"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
                 android:clipToPadding="false"
                 android:scrollbars="none" />
         </com.google.android.material.appbar.AppBarLayout>
 
+        <!-- File list with swipe refresh -->
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
             android:id="@+id/swipeRefresh"
             android:layout_width="match_parent"
@@ -50,12 +51,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:paddingBottom="16dp"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
                 android:clipToPadding="false"
                 android:scrollbars="vertical" />
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
+        <!-- Loading spinner -->
         <ProgressBar
             android:id="@+id/progressBar"
             android:layout_width="48dp"
@@ -63,6 +63,7 @@
             android:layout_gravity="center"
             android:visibility="gone" />
 
+        <!-- Empty state -->
         <LinearLayout
             android:id="@+id/tvEmptyState"
             android:layout_width="wrap_content"
@@ -89,14 +90,12 @@
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
-    <!-- Navigation drawer — locked open on tablet landscape -->
+    <!-- Navigation Drawer -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navView"
-        android:layout_width="260dp"
+        android:layout_width="280dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:elevation="2dp"
-        android:background="@color/surface"
         app:menu="@menu/nav_menu"
         app:headerLayout="@layout/nav_header"
         app:itemIconTint="@color/nav_item_color"
