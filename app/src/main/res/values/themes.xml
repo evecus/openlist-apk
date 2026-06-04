@@ -27,6 +27,9 @@
     <style name="Theme.OpenList.NoActionBar" parent="Theme.OpenList">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
+        <!-- Ensure window draws behind status bar, fitsSystemWindows handles offset -->
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@color/primary</item>
     </style>
 
     <style name="ToolbarTitle" parent="TextAppearance.MaterialComponents.Headline6">
