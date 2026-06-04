@@ -68,12 +68,14 @@
         <activity
             android:name=".ui.activity.AudioPlayerActivity"
             android:exported="false"
+            android:theme="@style/Theme.OpenList.NoActionBar"
             android:configChanges="orientation|screenSize" />
 
         <!-- Image Viewer Activity -->
         <activity
             android:name=".ui.activity.ImageViewerActivity"
             android:exported="false"
+            android:theme="@style/Theme.OpenList.NoActionBar"
             android:configChanges="orientation|screenSize" />
 
         <!-- Download Service -->
