@@ -96,6 +96,18 @@ class MainActivity : AppCompatActivity() {
             adapter = fileAdapter
             layoutManager = LinearLayoutManager(this@MainActivity)
             setHasFixedSize(true)
+            addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: androidx.recyclerview.widget.RecyclerView, dx: Int, dy: Int) {
+                    if (dy <= 0) return
+                    val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return
+                    val totalItemCount = lm.itemCount
+                    val lastVisible = lm.findLastVisibleItemPosition()
+                    // Trigger load more when within 5 items of the end
+                    if (lastVisible >= totalItemCount - 5) {
+                        viewModel.loadMore()
+                    }
+                }
+            })
         }
 
         // Breadcrumb
