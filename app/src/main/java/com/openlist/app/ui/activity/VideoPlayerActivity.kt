@@ -161,10 +161,6 @@ class VideoPlayerActivity : AppCompatActivity(), IVLCVout.Callback {
 
     // --- Surface 回调 ---
 
-    override fun onNewLayout(vout: IVLCVout, width: Int, height: Int, visibleWidth: Int, visibleHeight: Int, sarNum: Int, sarDen: Int) {
-        // libVLC 自行处理 Surface 尺寸适配
-    }
-
     override fun onSurfacesCreated(vout: IVLCVout) {}
     override fun onSurfacesDestroyed(vout: IVLCVout) {}
 
