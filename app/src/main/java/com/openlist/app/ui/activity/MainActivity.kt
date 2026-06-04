@@ -188,33 +188,40 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openFile(item: FileItem) {
-        val currentPath = viewModel.currentPath.value ?: "/"
-        val filePath = if (currentPath == "/") "/${item.name}" else "$currentPath/${item.name}"
-
         when {
-            item.isVideo -> {
-                val url = viewModel.getDownloadUrl(item)
-                val intent = Intent(this, VideoPlayerActivity::class.java).apply {
-                    putExtra(VideoPlayerActivity.EXTRA_URL, url)
-                    putExtra(VideoPlayerActivity.EXTRA_TITLE, item.name)
-                }
-                startActivity(intent)
-            }
-            item.isAudio -> {
-                val url = viewModel.getDownloadUrl(item)
-                val intent = Intent(this, AudioPlayerActivity::class.java).apply {
-                    putExtra(AudioPlayerActivity.EXTRA_URL, url)
-                    putExtra(AudioPlayerActivity.EXTRA_TITLE, item.name)
-                }
-                startActivity(intent)
-            }
-            item.isImage -> {
-                val url = viewModel.getDownloadUrl(item)
-                val intent = Intent(this, ImageViewerActivity::class.java).apply {
-                    putExtra(ImageViewerActivity.EXTRA_URL, url)
-                    putExtra(ImageViewerActivity.EXTRA_TITLE, item.name)
-                }
-                startActivity(intent)
+            item.isVideo || item.isAudio || item.isImage -> {
+                // 先调 fs/get 拿真实 raw_url，再跳转播放器
+                binding.progressBar.visibility = View.VISIBLE
+                viewModel.resolvePlayUrl(
+                    item = item,
+                    onReady = { url ->
+                        binding.progressBar.visibility = View.GONE
+                        when {
+                            item.isVideo -> startActivity(
+                                Intent(this, VideoPlayerActivity::class.java).apply {
+                                    putExtra(VideoPlayerActivity.EXTRA_URL, url)
+                                    putExtra(VideoPlayerActivity.EXTRA_TITLE, item.name)
+                                }
+                            )
+                            item.isAudio -> startActivity(
+                                Intent(this, AudioPlayerActivity::class.java).apply {
+                                    putExtra(AudioPlayerActivity.EXTRA_URL, url)
+                                    putExtra(AudioPlayerActivity.EXTRA_TITLE, item.name)
+                                }
+                            )
+                            item.isImage -> startActivity(
+                                Intent(this, ImageViewerActivity::class.java).apply {
+                                    putExtra(ImageViewerActivity.EXTRA_URL, url)
+                                    putExtra(ImageViewerActivity.EXTRA_TITLE, item.name)
+                                }
+                            )
+                        }
+                    },
+                    onError = { msg ->
+                        binding.progressBar.visibility = View.GONE
+                        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+                    }
+                )
             }
             else -> showFileOptions(item)
         }
