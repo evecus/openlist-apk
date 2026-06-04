@@ -4,11 +4,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     android:background="@color/background">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="true">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
@@ -25,7 +27,7 @@
         android:padding="32dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <!-- Album art placeholder -->
+        <!-- Album art -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="240dp"
             android:layout_height="240dp"
@@ -42,6 +44,7 @@
                 app:tint="@color/primary" />
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Title -->
         <TextView
             android:id="@+id/tvTitle"
             android:layout_width="match_parent"
@@ -54,6 +57,7 @@
             android:ellipsize="end"
             android:layout_marginTop="24dp" />
 
+        <!-- Buffering spinner -->
         <ProgressBar
             android:id="@+id/progressBar"
             android:layout_width="36dp"
@@ -61,25 +65,54 @@
             android:layout_marginTop="16dp"
             android:visibility="gone" />
 
-        <!-- Media3 PlayerView (controls only, no video surface) -->
-        <androidx.media3.ui.PlayerView
-            android:id="@+id/playerView"
+        <!-- SeekBar 进度条 -->
+        <SeekBar
+            android:id="@+id/seekBar"
             android:layout_width="match_parent"
-            android:layout_height="80dp"
-            android:layout_marginTop="16dp"
-            app:use_controller="true"
-            app:show_timeout="0"
-            app:use_artwork="false"
-            app:surface_type="none"
-            app:controller_layout_id="@layout/audio_player_controls" />
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:thumbTint="@color/primary"
+            android:progressTint="@color/primary"
+            android:progressBackgroundTint="@color/primary_container" />
 
-        <!-- Custom controls row -->
+        <!-- 时间显示 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
+
+            <TextView
+                android:id="@+id/tvCurrentTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0:00"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tvDuration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0:00"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary" />
+        </LinearLayout>
+
+        <!-- 控制按钮行 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center"
-            android:layout_marginTop="8dp">
+            android:layout_marginTop="16dp">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnRewind"
