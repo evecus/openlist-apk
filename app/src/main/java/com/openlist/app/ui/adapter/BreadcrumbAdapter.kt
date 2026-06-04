@@ -18,21 +18,19 @@ class BreadcrumbAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = getItem(position)
-        val isLast = position == itemCount - 1
-        holder.bind(item, isLast)
+        holder.bind(getItem(position))
     }
 
     inner class ViewHolder(private val binding: ItemBreadcrumbBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: BreadcrumbItem, isLast: Boolean) {
-            binding.tvCrumb.text = item.name
-            binding.tvCrumb.alpha = if (isLast) 1.0f else 0.6f
-            binding.tvSeparator.visibility = if (isLast) android.view.View.GONE else android.view.View.VISIBLE
-            binding.root.setOnClickListener {
-                if (!isLast) onCrumbClick(item.path)
-            }
+        fun bind(item: BreadcrumbItem) {
+            // Show "/" prefix before every crumb so the bar reads: /Home /123云盘 /9a
+            binding.tvCrumb.text = "/${item.name}"
+            // Hide the old › separator — the "/" prefix acts as separator now
+            binding.tvSeparator.visibility = android.view.View.GONE
+            // Every crumb is clickable (including the current one, for easy refresh)
+            binding.root.setOnClickListener { onCrumbClick(item.path) }
         }
     }
 }
