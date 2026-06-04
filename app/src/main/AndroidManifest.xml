@@ -64,9 +64,16 @@
             android:screenOrientation="sensorLandscape"
             android:theme="@style/Theme.OpenList.Player" />
 
-        <!-- Audio Player Activity -->
+        <!-- Audio Player Activity：使用专用主题，避免 ActionBar 冲突 -->
         <activity
             android:name=".ui.activity.AudioPlayerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.OpenList.AudioPlayer"
+            android:configChanges="orientation|screenSize" />
+
+        <!-- Downloads List Activity -->
+        <activity
+            android:name=".ui.activity.DownloadsActivity"
             android:exported="false"
             android:theme="@style/Theme.OpenList.NoActionBar"
             android:configChanges="orientation|screenSize" />
