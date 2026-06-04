@@ -58,7 +58,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupDrawer() {
         if (isTablet()) {
-            // On tablet landscape: lock drawer open permanently as a side nav panel
+            // On tablet: lock drawer open permanently as a fixed side nav panel.
+            // NonInterceptingDrawerLayout handles touch passthrough automatically.
             binding.drawerLayout?.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_OPEN)
             binding.drawerLayout?.setScrimColor(android.graphics.Color.TRANSPARENT)
         }
@@ -145,12 +146,13 @@ class MainActivity : AppCompatActivity() {
             binding.rvBreadcrumbs.scrollToPosition(crumbs.size - 1)
         }
 
-        viewModel.currentPath.observe(this) { path ->
-            supportActionBar?.subtitle = path
+        viewModel.currentPath.observe(this) { _ ->
+            // Path is shown in the breadcrumb bar below the toolbar; no subtitle needed
         }
 
         viewModel.serverName.observe(this) { name ->
             supportActionBar?.title = name.ifEmpty { "OpenList" }
+            supportActionBar?.subtitle = null
         }
 
         viewModel.searchResults.observe(this) { results ->
