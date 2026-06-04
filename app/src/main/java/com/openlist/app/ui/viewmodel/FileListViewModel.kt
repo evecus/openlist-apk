@@ -84,6 +84,8 @@ class FileListViewModel(application: Application) : AndroidViewModel(application
         currentPage = 1
         _currentPath.value = path
         updateBreadcrumbs(path)
+        // Clear immediately so the spinner shows while loading (itemCount becomes 0)
+        if (!refresh) _files.value = emptyList()
         fetchFiles(path, refresh = refresh)
     }
 
