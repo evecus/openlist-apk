@@ -4,7 +4,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.View
 import android.view.WindowInsets
@@ -20,12 +19,19 @@ import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.interfaces.IVLCVout
 
-class VideoPlayerActivity : AppCompatActivity(), IVLCVout.Callback {
+class VideoPlayerActivity : AppCompatActivity(), IVLCVout.OnNewVideoLayoutListener {
 
     private lateinit var binding: ActivityVideoPlayerBinding
-
     private lateinit var libVLC: LibVLC
     private lateinit var mediaPlayer: MediaPlayer
+
+    // 视频原始宽高、像素比，用于正确缩放 SurfaceView
+    private var videoWidth = 0
+    private var videoHeight = 0
+    private var videoVisibleWidth = 0
+    private var videoVisibleHeight = 0
+    private var videoSarNum = 1
+    private var videoSarDen = 1
 
     private val handler = Handler(Looper.getMainLooper())
     private val progressUpdater = object : Runnable {
@@ -34,12 +40,9 @@ class VideoPlayerActivity : AppCompatActivity(), IVLCVout.Callback {
             handler.postDelayed(this, 500)
         }
     }
-
-    // 控制栏自动隐藏
     private val hideControlsRunnable = Runnable { hideControls() }
     private var controlsVisible = false
 
-    // 缩放模式循环：FIT → FILL → ZOOM
     private var scaleModeIndex = 0
     private val scaleModes = listOf(
         MediaPlayer.ScaleType.SURFACE_BEST_FIT,
@@ -65,12 +68,10 @@ class VideoPlayerActivity : AppCompatActivity(), IVLCVout.Callback {
 
         binding.tvTitle.text = title
         binding.btnBack.setOnClickListener { finish() }
-
         binding.btnResizeMode.setOnClickListener {
             scaleModeIndex = (scaleModeIndex + 1) % scaleModes.size
             mediaPlayer.videoScale = scaleModes[scaleModeIndex]
         }
-
         binding.btnPlayPause.setOnClickListener {
             if (mediaPlayer.isPlaying) mediaPlayer.pause() else mediaPlayer.play()
         }
@@ -80,7 +81,6 @@ class VideoPlayerActivity : AppCompatActivity(), IVLCVout.Callback {
         binding.btnFastForward.setOnClickListener {
             mediaPlayer.time = (mediaPlayer.time + 10_000).coerceAtMost(mediaPlayer.length)
         }
-
         binding.seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                 if (fromUser) binding.tvCurrentTime.text = formatTime(progress.toLong())
@@ -93,19 +93,13 @@ class VideoPlayerActivity : AppCompatActivity(), IVLCVout.Callback {
                 if (mediaPlayer.isPlaying) handler.post(progressUpdater)
             }
         })
-
-        // 点击画面切换控制栏显示
         binding.surfaceView.setOnClickListener { toggleControls() }
 
         initVLC(url)
     }
 
     private fun initVLC(url: String) {
-        val options = arrayListOf(
-            "--network-caching=3000",
-            "--no-audio-time-stretch"
-        )
-        libVLC = LibVLC(this, options)
+        libVLC = LibVLC(this, arrayListOf("--network-caching=3000", "--no-osd"))
         mediaPlayer = MediaPlayer(libVLC)
 
         val vout = mediaPlayer.vlcVout
@@ -113,56 +107,95 @@ class VideoPlayerActivity : AppCompatActivity(), IVLCVout.Callback {
         vout.addCallback(this)
         vout.attachViews()
 
-        val media = Media(libVLC, android.net.Uri.parse(url))
+        val media = Media(libVLC, android.net.Uri.parse(url)).apply {
+            addOption(":http-reconnect")
+        }
         mediaPlayer.media = media
+        mediaPlayer.play()
         media.release()
 
         mediaPlayer.setEventListener { event ->
             when (event.type) {
-                MediaPlayer.Event.Playing -> {
-                    runOnUiThread {
-                        binding.progressBar.visibility = View.GONE
-                        binding.btnPlayPause.setImageResource(R.drawable.ic_pause)
-                        val duration = mediaPlayer.length.coerceAtLeast(0)
-                        binding.seekBar.max = duration.toInt()
-                        binding.tvDuration.text = formatTime(duration)
-                        handler.post(progressUpdater)
-                        showControls()
-                    }
+                MediaPlayer.Event.Playing -> runOnUiThread {
+                    binding.progressBar.visibility = View.GONE
+                    binding.btnPlayPause.setImageResource(R.drawable.ic_pause)
+                    val duration = mediaPlayer.length.coerceAtLeast(0)
+                    binding.seekBar.max = duration.toInt()
+                    binding.tvDuration.text = formatTime(duration)
+                    handler.post(progressUpdater)
+                    showControls()
                 }
-                MediaPlayer.Event.Paused -> {
-                    runOnUiThread {
-                        binding.btnPlayPause.setImageResource(R.drawable.ic_play)
-                        handler.removeCallbacks(progressUpdater)
-                        updateSeekBar()
-                        showControls()
-                    }
+                MediaPlayer.Event.Paused -> runOnUiThread {
+                    binding.btnPlayPause.setImageResource(R.drawable.ic_play)
+                    handler.removeCallbacks(progressUpdater)
+                    updateSeekBar()
+                    showControls()
                 }
-                MediaPlayer.Event.Buffering -> {
-                    runOnUiThread {
-                        val buffering = event.buffering < 100f
-                        binding.progressBar.visibility = if (buffering) View.VISIBLE else View.GONE
-                    }
+                MediaPlayer.Event.Buffering -> runOnUiThread {
+                    binding.progressBar.visibility =
+                        if (event.buffering < 100f) View.VISIBLE else View.GONE
                 }
-                MediaPlayer.Event.EncounteredError -> {
-                    runOnUiThread {
-                        Toast.makeText(this, "播放失败：格式不支持或网络错误", Toast.LENGTH_LONG).show()
-                    }
+                MediaPlayer.Event.EncounteredError -> runOnUiThread {
+                    Toast.makeText(this, "播放失败：格式不支持或网络错误", Toast.LENGTH_LONG).show()
                 }
-                MediaPlayer.Event.EndReached -> {
-                    runOnUiThread { finish() }
-                }
+                MediaPlayer.Event.EndReached -> runOnUiThread { finish() }
             }
         }
 
         binding.progressBar.visibility = View.VISIBLE
-        mediaPlayer.play()
     }
 
-    // --- Surface 回调 ---
+    // libVLC 通知视频尺寸，在此动态调整 SurfaceView 大小
+    override fun onNewVideoLayout(
+        vout: IVLCVout,
+        width: Int, height: Int,
+        visibleWidth: Int, visibleHeight: Int,
+        sarNum: Int, sarDen: Int
+    ) {
+        if (width == 0 || height == 0) return
+        videoWidth = width
+        videoHeight = height
+        videoVisibleWidth = visibleWidth
+        videoVisibleHeight = visibleHeight
+        videoSarNum = sarNum
+        videoSarDen = sarDen
+        handler.post { updateSurfaceSize() }
+    }
 
-    override fun onSurfacesCreated(vout: IVLCVout) {}
-    override fun onSurfacesDestroyed(vout: IVLCVout) {}
+    private fun updateSurfaceSize() {
+        val container = binding.surfaceView.parent as? View ?: return
+        val containerW = container.width
+        val containerH = container.height
+        if (containerW == 0 || containerH == 0 || videoWidth == 0 || videoHeight == 0) return
+
+        // 计算真实宽高比（考虑像素宽高比 SAR）
+        var sarDen = videoSarDen
+        var sarNum = videoSarNum
+        if (sarDen == 0) sarDen = 1
+        if (sarNum == 0) sarNum = 1
+
+        val videoW = videoVisibleWidth.toFloat() * sarNum / sarDen
+        val videoH = videoVisibleHeight.toFloat()
+        val videoAspect = videoW / videoH
+        val containerAspect = containerW.toFloat() / containerH
+
+        val surfaceW: Int
+        val surfaceH: Int
+        if (videoAspect > containerAspect) {
+            // 视频更宽：以容器宽为准
+            surfaceW = containerW
+            surfaceH = (containerW / videoAspect).toInt()
+        } else {
+            // 视频更高：以容器高为准
+            surfaceH = containerH
+            surfaceW = (containerH * videoAspect).toInt()
+        }
+
+        val lp = binding.surfaceView.layoutParams
+        lp.width = surfaceW
+        lp.height = surfaceH
+        binding.surfaceView.layoutParams = lp
+    }
 
     // --- 控制栏显示/隐藏 ---
 
