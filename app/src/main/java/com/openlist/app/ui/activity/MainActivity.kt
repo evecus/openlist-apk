@@ -131,6 +131,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        viewModel.navigateToSetup.observe(this) { shouldNavigate ->
+            if (shouldNavigate == true) {
+                startActivity(Intent(this, SetupActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                })
+                finish()
+            }
+        }
+
         viewModel.breadcrumbs.observe(this) { crumbs ->
             breadcrumbAdapter.submitList(crumbs)
             binding.rvBreadcrumbs.scrollToPosition(crumbs.size - 1)
