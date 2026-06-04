@@ -4,7 +4,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.SurfaceHolder
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -19,15 +18,14 @@ import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.interfaces.IVLCVout
 
-class VideoPlayerActivity : AppCompatActivity(), IVLCVout.OnNewVideoLayoutListener {
+class VideoPlayerActivity : AppCompatActivity(),
+    IVLCVout.Callback,
+    IVLCVout.OnNewVideoLayoutListener {
 
     private lateinit var binding: ActivityVideoPlayerBinding
     private lateinit var libVLC: LibVLC
     private lateinit var mediaPlayer: MediaPlayer
 
-    // 视频原始宽高、像素比，用于正确缩放 SurfaceView
-    private var videoWidth = 0
-    private var videoHeight = 0
     private var videoVisibleWidth = 0
     private var videoVisibleHeight = 0
     private var videoSarNum = 1
@@ -104,7 +102,8 @@ class VideoPlayerActivity : AppCompatActivity(), IVLCVout.OnNewVideoLayoutListen
 
         val vout = mediaPlayer.vlcVout
         vout.setVideoView(binding.surfaceView)
-        vout.addCallback(this)
+        vout.addCallback(this)                      // IVLCVout.Callback
+        vout.addOnNewVideoLayoutListener(this)      // IVLCVout.OnNewVideoLayoutListener
         vout.attachViews()
 
         val media = Media(libVLC, android.net.Uri.parse(url)).apply {
@@ -145,7 +144,11 @@ class VideoPlayerActivity : AppCompatActivity(), IVLCVout.OnNewVideoLayoutListen
         binding.progressBar.visibility = View.VISIBLE
     }
 
-    // libVLC 通知视频尺寸，在此动态调整 SurfaceView 大小
+    // IVLCVout.Callback — 必须实现，但不需要处理
+    override fun onSurfacesCreated(vout: IVLCVout) {}
+    override fun onSurfacesDestroyed(vout: IVLCVout) {}
+
+    // IVLCVout.OnNewVideoLayoutListener — 视频尺寸就绪时动态调整 SurfaceView
     override fun onNewVideoLayout(
         vout: IVLCVout,
         width: Int, height: Int,
@@ -153,12 +156,10 @@ class VideoPlayerActivity : AppCompatActivity(), IVLCVout.OnNewVideoLayoutListen
         sarNum: Int, sarDen: Int
     ) {
         if (width == 0 || height == 0) return
-        videoWidth = width
-        videoHeight = height
         videoVisibleWidth = visibleWidth
         videoVisibleHeight = visibleHeight
-        videoSarNum = sarNum
-        videoSarDen = sarDen
+        videoSarNum = if (sarNum == 0) 1 else sarNum
+        videoSarDen = if (sarDen == 0) 1 else sarDen
         handler.post { updateSurfaceSize() }
     }
 
@@ -166,15 +167,9 @@ class VideoPlayerActivity : AppCompatActivity(), IVLCVout.OnNewVideoLayoutListen
         val container = binding.surfaceView.parent as? View ?: return
         val containerW = container.width
         val containerH = container.height
-        if (containerW == 0 || containerH == 0 || videoWidth == 0 || videoHeight == 0) return
+        if (containerW == 0 || containerH == 0 || videoVisibleWidth == 0 || videoVisibleHeight == 0) return
 
-        // 计算真实宽高比（考虑像素宽高比 SAR）
-        var sarDen = videoSarDen
-        var sarNum = videoSarNum
-        if (sarDen == 0) sarDen = 1
-        if (sarNum == 0) sarNum = 1
-
-        val videoW = videoVisibleWidth.toFloat() * sarNum / sarDen
+        val videoW = videoVisibleWidth.toFloat() * videoSarNum / videoSarDen
         val videoH = videoVisibleHeight.toFloat()
         val videoAspect = videoW / videoH
         val containerAspect = containerW.toFloat() / containerH
@@ -182,11 +177,9 @@ class VideoPlayerActivity : AppCompatActivity(), IVLCVout.OnNewVideoLayoutListen
         val surfaceW: Int
         val surfaceH: Int
         if (videoAspect > containerAspect) {
-            // 视频更宽：以容器宽为准
             surfaceW = containerW
             surfaceH = (containerW / videoAspect).toInt()
         } else {
-            // 视频更高：以容器高为准
             surfaceH = containerH
             surfaceW = (containerH * videoAspect).toInt()
         }
@@ -197,7 +190,7 @@ class VideoPlayerActivity : AppCompatActivity(), IVLCVout.OnNewVideoLayoutListen
         binding.surfaceView.layoutParams = lp
     }
 
-    // --- 控制栏显示/隐藏 ---
+    // --- 控制栏 ---
 
     private fun showControls() {
         controlsVisible = true
@@ -221,7 +214,7 @@ class VideoPlayerActivity : AppCompatActivity(), IVLCVout.OnNewVideoLayoutListen
         handler.postDelayed(hideControlsRunnable, 3000)
     }
 
-    // --- 进度更新 ---
+    // --- 进度 ---
 
     private fun updateSeekBar() {
         val pos = mediaPlayer.time.coerceAtLeast(0)
@@ -280,8 +273,10 @@ class VideoPlayerActivity : AppCompatActivity(), IVLCVout.OnNewVideoLayoutListen
         super.onDestroy()
         handler.removeCallbacks(progressUpdater)
         handler.removeCallbacks(hideControlsRunnable)
-        mediaPlayer.vlcVout.removeCallback(this)
-        mediaPlayer.vlcVout.detachViews()
+        val vout = mediaPlayer.vlcVout
+        vout.removeCallback(this)
+        vout.removeOnNewVideoLayoutListener(this)
+        vout.detachViews()
         mediaPlayer.release()
         libVLC.release()
     }
