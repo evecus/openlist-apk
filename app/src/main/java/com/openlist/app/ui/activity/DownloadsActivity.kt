@@ -42,7 +42,7 @@ class DownloadsActivity : AppCompatActivity() {
             setBackgroundColor(getColor(R.color.primary))
             setTitleTextColor(getColor(R.color.white))
             setNavigationIcon(R.drawable.ic_arrow_back)
-            setNavigationIconTint(android.content.res.ColorStateList.valueOf(getColor(R.color.white)))
+            setNavigationIconTint(getColor(R.color.white))
             setNavigationOnClickListener { finish() }
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
